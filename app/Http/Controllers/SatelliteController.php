@@ -54,20 +54,20 @@ class SatelliteController extends Controller
 
             $predictions = $this->apiCall('predictions', $noradId);
 
-//            if ($predictions) {
-//                echo "<ol>Satellite {$satellite['info']['satname']} will be visible {$predictions['info']['passescount']} times:";
-//
-//                foreach ($predictions['passes'] as $pass) {
-//                    $startTimeStamp = new Carbon($pass['startUTC']);
-//                    $endTimeStamp = new Carbon($pass['endUTC']);
-//                    echo "<li>" .
-//                        "from {$pass['startAzCompass']} to {$pass['endAzCompass']}, " .
-//                        "from {$startTimeStamp->format('H:i D, M d, Y')} until {$endTimeStamp->format('H:i D, M d, Y')}." .
-//                        "</li>";
-//                }
-//            } else {
-//                echo "Satellite {$satellite['info']['satname']} is not visible.";
-//            }
+            if ($predictions) {
+                echo "<ol>Satellite {$satellite['info']['satname']} will be visible {$predictions['info']['passescount']} times:";
+
+                foreach ($predictions['passes'] as $pass) {
+                    $startTimeStamp = new Carbon($pass['startUTC']);
+                    $endTimeStamp = new Carbon($pass['endUTC']);
+                    echo "<li>" .
+                        "from {$pass['startAzCompass']} to {$pass['endAzCompass']}, " .
+                        "from {$startTimeStamp->format('H:i D, M d, Y')} until {$endTimeStamp->format('H:i D, M d, Y')}." .
+                        "</li>";
+                }
+            } else {
+                echo "Satellite {$satellite['info']['satname']} is not visible.";
+            }
         }
 
         return $predictions ?? $satellite ?? null;
