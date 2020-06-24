@@ -19,18 +19,18 @@ RUN echo "Deploying the API .........."
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-RUN echo "Configure Apache ..................."
+RUN echo "Configure Apache & PHP ..................."
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 RUN a2enmod rewrite headers ssl
+
 RUN mv "${PHP_INI_DIR}/php.ini-development" "$PHP_INI_DIR/php.ini"
-#COPY apache/php.ini ${PHP_INI_DIR}/conf.d/custom.ini
-#COPY apache/vhost-apache.conf /etc/apache2/sites-available/000-default.conf
+#COPY ./docker/php/php.ini ${PHP_INI_DIR}/conf.d/custom.ini
+#COPY ./docker/apache/vhost-apache.conf /etc/apache2/sites-available/000-default.conf
 RUN service apache2 restart
 
 RUN echo "Installing composer ................."
-#COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # a user with the same UID/GID as host user to preserve container / host permissions
@@ -41,7 +41,7 @@ RUN mkdir -p /home/devuser/.composer && \
 
 # cannot go further without .env file
 RUN #!/bin/bash \
-    && if [ ! -x "/var/www/.env"; ] then \
+    && if [ ! -x "/var/www/html/.env"; ] then \
     &&   echo "Please ensure .env exists!" >&2 \
     &&   exit() \
     && fi
