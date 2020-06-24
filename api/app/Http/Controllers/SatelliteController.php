@@ -48,58 +48,76 @@ class SatelliteController extends Controller
      */
     public function findNoradId(int $noradId)
     {
-        $satellite = $this->apiCall('tle', $noradId);
+        $satellite = $this->apiCall('details', $noradId);
 
         if ($satellite) {
-
             $predictions = $this->apiCall('predictions', $noradId);
 
-//            if ($predictions) {
-//                echo "<ol>Satellite {$satellite['info']['satname']} will be visible {$predictions['info']['passescount']} times:";
-//
-//                foreach ($predictions['passes'] as $pass) {
-//                    $startTimeStamp = new Carbon($pass['startUTC']);
-//                    $endTimeStamp = new Carbon($pass['endUTC']);
-//                    echo "<li>" .
-//                        "from {$pass['startAzCompass']} to {$pass['endAzCompass']}, " .
-//                        "from {$startTimeStamp->format('H:i D, M d, Y')} until {$endTimeStamp->format('H:i D, M d, Y')}." .
-//                        "</li>";
-//                }
-//            } else {
-//                echo "Satellite {$satellite['info']['satname']} is not visible.";
-//            }
+            if (!$predictions) {
+                throw new \Exception("Satellite {$satellite['info']['satname']} is not visible.");
+            }
         }
 
         return $predictions ?? $satellite ?? null;
     }
 
     /**
+     * Route handler.
+     * `/{noradId:[0-9]+}/predictions/{lat}/{lng}/{?alt:[0-9]+}/`
+     *
      * @param int $noradId
+     * @param float $lat
+     * @param float $lng
+     * @param int $alt
      * @return array
+     * @throws \Exception
      */
-    public function getPredictions(int $noradId)
+    public function getPredictions(Request $request, int $noradId, float $lat, float $lng, int $alt = 0)
     {
-        $satellite = $this->apiCall('tle', $noradId);
-
-        $predictions = null;
-
-        if ($satellite) {
-            $predictions = $this->apiCall('predictions', $noradId);
+        $satellite = $this->getSatellite($noradId);
+        if (!$satellite) {
+            throw new \Exception("Satellite #{$noradId} not found.");
         }
+
+        // pass location with request for predictions
+        $payload = [
+            'latitude' => $lat ?? 51.639785,
+            'longitude' => $lng ?? -0.129894,
+            'altitude' => $alt ?? 0,
+        ];
+
+        $predictions = $this->apiCall('predictions', $noradId, $lat, $lng, $alt);
+        if (!$predictions) {
+            throw new \Exception("Satellite {$satellite['info']['satname']} is not visible.");
+        }
+
+//        echo "<ol>Satellite {$satellite['info']['satname']} will be visible {$predictions['info']['passescount']} times:";
+//        foreach ($predictions['passes'] as $pass) {
+//            $startTimeStamp = new Carbon($pass['startUTC']);
+//            $endTimeStamp = new Carbon($pass['endUTC']);
+//            echo "<li>" .
+//                "from {$pass['startAzCompass']} to {$pass['endAzCompass']}, " .
+//                "from {$startTimeStamp->format('H:i D, M d, Y')} until {$endTimeStamp->format('H:i D, M d, Y')}." .
+//                "</li>";
+//        }
 
         return [$satellite, $predictions];
     }
 
     /**
-     * @param Request $request
+     * @todo extend this and do it properly.
+     *
      * @param int $noradId
      * @return string
      */
-    public function getSatellite(Request $request, int $noradId)
+    public function getSatellite(int $noradId)
     {
-        $satellite = Satellite::where('noradId', $noradId)->get();
+        $satellite = $this->apiCall('details', $noradId);
 
-        return $satellite ?? 'null';
+        // maybe cache searches (not position) for quick access?
+        //$satellite = Satellite::where('noradId', $noradId)->get();
+
+        return $satellite ?? false;
     }
 
     /**
@@ -116,11 +134,9 @@ class SatelliteController extends Controller
         $response = null;
 
         switch ($operation)  {
-            // fetch configuration details from bridge
-            case 'tle':
+            case 'details':
                 $url .= "/tle/$noradId/";
                 break;
-            // fetch configuration details from bridge
             case 'predictions':
                 $url .= "/visualpasses/$noradId/51.639785/-0.129894/0/7/1/";
                 break;

@@ -20,7 +20,7 @@ services:
     container_name: startracker-api
     build:
       context: .
-      dockerfile: docker/api.dockerfile
+      dockerfile: api.dockerfile
       args:
         uid: ${UID}
     environment:
@@ -33,7 +33,7 @@ services:
       - APACHE_RUN_GROUP=#${UID}
       - APACHE_DOCUMENT_ROOT=/var/www/html/public
     volumes:
-      - ./:/var/www/html
+      - ./api:/var/www/html
       - ./docker/apache/php.ini:/usr/local/etc/php/conf.d/custom.ini
     ports:
       - "${API_SERVER_PORT}:80"
