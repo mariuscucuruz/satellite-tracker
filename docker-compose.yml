@@ -20,7 +20,7 @@ services:
     container_name: startracker-api
     build:
       context: .
-      dockerfile: ./docker/api.dockerfile
+      dockerfile: api.dockerfile
       args:
         uid: ${UID}
     environment:
