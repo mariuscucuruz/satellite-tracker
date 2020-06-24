@@ -2,13 +2,12 @@
 
 namespace App;
 
-use Illuminate\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Laravel\Lumen\Auth\Authorizable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Subscriber extends Model
 {
-    use Authenticatable, Authorizable;
+    use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.

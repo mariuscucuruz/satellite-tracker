@@ -16,7 +16,7 @@ class CreateSubscribersTable extends Migration
         Schema::create('subscribers', function (Blueprint $table) {
             $table->id();
 
-            $table->integer('satId');
+            $table->integer('satId')->nullable();
             $table->integer('noradId');
 
             $table->string('email');
