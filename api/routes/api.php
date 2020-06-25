@@ -14,7 +14,7 @@ $router->group([
     'prefix' => 'satellite',
     'namespace' => '\App\Http\Controllers'
 ], function () use ($router) {
-        $router->get('/{noradId:[0-9]+}', 'SatelliteController@findNoradId');
+        $router->get('/{noradId:[0-9]+}', 'SatelliteController@getSatellite');
         $router->get('/{noradId:[0-9]+}/predictions/{lat}/{lng}[/{alt:[0-9]+}]', 'SatelliteController@getPredictions');
     });
 
