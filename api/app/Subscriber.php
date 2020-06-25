@@ -9,11 +9,10 @@ class Subscriber extends Model
 {
     use SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
+    protected $table = 'subscribers';
+
+    public $timestamps = true;
+
     protected $fillable = [
         'name', 'email',
         'satId', 'noradId',

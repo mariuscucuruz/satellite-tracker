@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use App\Satellite;
-use Carbon\Carbon;
+use Illuminate\Http\Response;
+use App\N2yoClient;
 
 class SatelliteController extends Controller
 {
@@ -26,44 +25,33 @@ class SatelliteController extends Controller
 
     /**
      * SatelliteController constructor.
+     *
      * @throws \Exception
      */
     public function __construct()
     {
-        if (!env('N2YO_KEY') || !env('N2YO_URL')) {
-            throw new \Exception('Missing API details.');
-        }
-
-        $this->apiBaseUrl   = env('N2YO_URL');
-        $this->apiKey       = env('N2YO_KEY');
-
-        $this->apiClient    = Http::withBasicAuth('', '');
+        $this->apiClient = new N2yoClient();
     }
 
     /**
-     * @param Request $request
+     * Route Handler for `/{noradId:[0-9]+}`.
+     *
      * @param int $noradId
-     * @return mixed|string
+     * @return \Illuminate\Http\JsonResponse|mixed|string
      * @throws \Exception
      */
-    public function findNoradId(int $noradId)
+    public function getSatellite(int $noradId)
     {
-        $satellite = $this->apiCall('details', $noradId);
-
-        if ($satellite) {
-            $predictions = $this->apiCall('predictions', $noradId);
-
-            if (!$predictions) {
-                throw new \Exception("Satellite {$satellite['info']['satname']} is not visible.");
-            }
+        if (!$satellite = $this->findByNoradId($noradId)) {
+            return response("Satellite #$noradId not found.", 200);
         }
 
-        return $predictions ?? $satellite ?? null;
+        return $satellite;
     }
 
     /**
      * Route handler.
-     * `/{noradId:[0-9]+}/predictions/{lat}/{lng}/{?alt:[0-9]+}/`
+     * `/{noradId:[0-9]+}/predictions/{lat}/{lng}/{?alt}/`
      *
      * @param int $noradId
      * @param float $lat
@@ -72,11 +60,11 @@ class SatelliteController extends Controller
      * @return array
      * @throws \Exception
      */
-    public function getPredictions(Request $request, int $noradId, float $lat, float $lng, int $alt = 0)
+    public function getPredictions(int $noradId, float $lat, float $lng, int $alt = 0)
     {
-        $satellite = $this->getSatellite($noradId);
-        if (!$satellite) {
-            throw new \Exception("Satellite #{$noradId} not found.");
+        if (!SatelliteController::exists($noradId)) {
+            // would return 204 but that's a no-content
+            return response("Satellite #{$noradId} not found.", 201);
         }
 
         // pass location with request for predictions
@@ -86,9 +74,8 @@ class SatelliteController extends Controller
             'altitude' => $alt ?? 0,
         ];
 
-        $predictions = $this->apiCall('predictions', $noradId, $lat, $lng, $alt);
-        if (!$predictions) {
-            throw new \Exception("Satellite {$satellite['info']['satname']} is not visible.");
+        if (!$predictions = $this->apiClient->apiCall('predictions', $noradId)) {
+            return response("Satellite {$satellite['info']['satname']} is not visible.", 201);
         }
 
 //        echo "<ol>Satellite {$satellite['info']['satname']} will be visible {$predictions['info']['passescount']} times:";
@@ -101,7 +88,7 @@ class SatelliteController extends Controller
 //                "</li>";
 //        }
 
-        return [$satellite, $predictions];
+        return $predictions;
     }
 
     /**
@@ -110,71 +97,28 @@ class SatelliteController extends Controller
      * @param int $noradId
      * @return string
      */
-    public function getSatellite(int $noradId)
+    public function findByNoradId(int $noradId)
     {
-        $satellite = $this->apiCall('details', $noradId);
+        $satellite = $this->apiClient->apiCall('details', $noradId);
 
-        // maybe cache searches (not position) for quick access?
-        //$satellite = Satellite::where('noradId', $noradId)->get();
+        // if satellite is not named it probably doesn't exist
+        if (is_null($satellite['info']['satname'])) return false;
 
-        return $satellite ?? false;
+        return $satellite;
     }
 
     /**
-     * Perform the actual API call and handle response.
+     * Static method for API call without instantiating the class.
      *
-     * @param $operation
-     * @param $payload
-     * @return mixed
-     */
-    public function apiCall($operation, int $noradId = 0)
-    {
-        $url = $this->apiBaseUrl;
-
-        $response = null;
-
-        switch ($operation)  {
-            case 'details':
-                $url .= "/tle/$noradId/";
-                break;
-            case 'predictions':
-                $url .= "/visualpasses/$noradId/51.639785/-0.129894/0/7/1/";
-                break;
-        }
-
-        $response = $this->apiClient->get("$url&apiKey={$this->apiKey}");
-
-        return $this->handleResponse($response);
-    }
-
-    /**
-     * @param $response
-     * @return mixed
-     */
-    private function handleResponse($response)
-    {
-        $this->anythingToDeclare($response, "Something failed...");
-
-        //$this->doSomethingElse($response->headers());
-
-        return $response->json();
-    }
-
-    /**
-     * Warn if API response is not explicitly successful.
-     *
-     * @param $apiResponse
-     * @param string $message
+     * @param int $noradId
      * @return bool
      */
-    private function anythingToDeclare($apiResponse, $message = null) : bool
+    public static function exists(int $noradId) : bool
     {
-        $message = $message ?? 'Something went wrong.';
+        $apiClient = new N2yoClient();
 
-        if (isset($apiResponse['error']) || $apiResponse->status() != 200) {
-            dd($message, $apiResponse['error']);
-        }
+        $satellite = $apiClient->apiCall('details', $noradId);
 
-        return true;
+        return !is_null($satellite['info']['satname']);
     }
 }
