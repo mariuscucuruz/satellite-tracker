@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  startracker-db:
+  db:
     image: mysql:5.7
     container_name: ${DB_HOST}
     command: --default-authentication-plugin=mysql_native_password
@@ -31,7 +31,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - APACHE_RUN_USER=#${UID}
       - APACHE_RUN_GROUP=#${UID}
-      - APACHE_DOCUMENT_ROOT=/var/www/html/public
+      - APACHE_DOCUMENT_ROOT=${APACHE_DOCUMENT_ROOT}
     volumes:
       - ./api:/var/www/html
       - ./docker/apache/php.ini:/usr/local/etc/php/conf.d/custom.ini
@@ -40,9 +40,9 @@ services:
     expose:
       - 80
     links:
-      - ${DB_HOST}
+      - db
     depends_on:
-      - ${DB_HOST}
+      - db
     networks:
       - backend
 
