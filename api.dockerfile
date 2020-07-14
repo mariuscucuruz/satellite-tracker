@@ -16,7 +16,7 @@ RUN docker-php-ext-install -j$(nproc) gd zip bcmath pdo pdo_mysql pdo_pgsql mbst
 RUN apt-get clean && apt-get --purge autoremove -y
 
 RUN echo "Deploying the API .........."
-COPY . /var/www/html
+COPY api /var/www/html
 WORKDIR /var/www/html
 
 RUN echo "Configure Apache & PHP ..................."
